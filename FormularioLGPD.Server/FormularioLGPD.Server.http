@@ -1,0 +1,6 @@
+@FormularioLGPD.Server_HostAddress = http://localhost:5230
+
+GET {{FormularioLGPD.Server_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
