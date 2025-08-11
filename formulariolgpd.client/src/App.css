@@ -1,11 +1,582 @@
-﻿#root {
-    max-width: 1280px;
-    margin: 0 auto;
-    padding: 2rem;
-    text-align: center;
+﻿/* src/App.css */
+
+/* ========================================
+   VARIABLES CSS
+======================================== */
+:root {
+    --primary-color: #4285f4;
+    --success-color: #34a853;
+    --warning-color: #fbbc04;
+    --danger-color: #ea4335;
+    --light-gray: #f8f9fa;
+    --medium-gray: #6c757d;
+    --dark-gray: #343a40;
+    --border-radius: 8px;
+    --box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    --transition: all 0.3s ease;
 }
 
-th, td {
-    padding-left: 1rem;
-    padding-right: 1rem;
+/* ========================================
+   GLOBAL STYLES
+======================================== */
+* {
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f5f6fa;
+    color: #333;
+    line-height: 1.6;
+}
+
+.app-container {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* ========================================
+   STEPPER PROGRESS
+======================================== */
+.stepper-container {
+    background: white;
+    border-radius: var(--border-radius);
+    padding: 20px;
+    box-shadow: var(--box-shadow);
+}
+
+.stepper-circle {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 14px;
+    transition: var(--transition);
+    border: 2px solid #dee2e6;
+    background: white;
+    color: var(--medium-gray);
+}
+
+    .stepper-circle.completed {
+        background: var(--success-color);
+        border-color: var(--success-color);
+        color: white;
+        transform: scale(1.1);
+    }
+
+    .stepper-circle.active {
+        background: var(--primary-color);
+        border-color: var(--primary-color);
+        color: white;
+        transform: scale(1.1);
+        box-shadow: 0 0 0 3px rgba(66, 133, 244, 0.2);
+    }
+
+    .stepper-circle.pending {
+        background: white;
+        border-color: #dee2e6;
+        color: var(--medium-gray);
+    }
+
+.stepper-line {
+    flex: 1;
+    height: 2px;
+    margin: 0 15px;
+    transition: var(--transition);
+}
+
+    .stepper-line.completed {
+        background: var(--success-color);
+    }
+
+    .stepper-line.pending {
+        background: #dee2e6;
+    }
+
+/* ========================================
+   STEP CONTAINERS
+======================================== */
+.step-container {
+    animation: fadeInUp 0.5s ease;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.step-icon {
+    width: 50px;
+    height: 50px;
+    background: linear-gradient(135deg, var(--primary-color), #5a9eff);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+}
+
+.card {
+    border: none !important;
+    border-radius: var(--border-radius) !important;
+    box-shadow: var(--box-shadow) !important;
+    transition: var(--transition);
+}
+
+    .card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15) !important;
+    }
+
+/* ========================================
+   FORM STYLES
+======================================== */
+.form-control {
+    border: 2px solid #e9ecef;
+    border-radius: var(--border-radius);
+    padding: 12px 16px;
+    font-size: 16px;
+    transition: var(--transition);
+}
+
+    .form-control:focus {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(66, 133, 244, 0.1);
+    }
+
+    .form-control.is-invalid {
+        border-color: var(--danger-color);
+    }
+
+    .form-control.is-valid {
+        border-color: var(--success-color);
+    }
+
+.form-label {
+    font-weight: 600;
+    color: var(--dark-gray);
+    margin-bottom: 8px;
+}
+
+.form-check-input:checked {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.form-check-label {
+    cursor: pointer;
+    font-size: 15px;
+}
+
+/* ========================================
+   BUTTON STYLES
+======================================== */
+.btn {
+    border-radius: var(--border-radius);
+    padding: 12px 24px;
+    font-weight: 600;
+    text-transform: none;
+    transition: var(--transition);
+    border: none;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, var(--primary-color), #5a9eff);
+    color: white;
+}
+
+    .btn-primary:hover {
+        background: linear-gradient(135deg, #3367d6, var(--primary-color));
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(66, 133, 244, 0.3);
+    }
+
+.btn-success {
+    background: linear-gradient(135deg, var(--success-color), #46b566);
+    color: white;
+}
+
+    .btn-success:hover {
+        background: linear-gradient(135deg, #2d8f41, var(--success-color));
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(52, 168, 83, 0.3);
+    }
+
+.btn-outline-primary {
+    border: 2px solid var(--primary-color);
+    color: var(--primary-color);
+    background: transparent;
+}
+
+    .btn-outline-primary:hover {
+        background: var(--primary-color);
+        color: white;
+        transform: translateY(-1px);
+    }
+
+.btn-outline-secondary {
+    border: 2px solid var(--medium-gray);
+    color: var(--medium-gray);
+    background: transparent;
+}
+
+    .btn-outline-secondary:hover {
+        background: var(--medium-gray);
+        color: white;
+        transform: translateY(-1px);
+    }
+
+.btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none !important;
+}
+
+/* ========================================
+   DEPENDENTES SECTION
+======================================== */
+.dependente-card {
+    border: 2px solid #e9ecef;
+    border-radius: var(--border-radius);
+    transition: var(--transition);
+}
+
+    .dependente-card:hover {
+        border-color: var(--primary-color);
+        box-shadow: 0 2px 8px rgba(66, 133, 244, 0.1);
+    }
+
+    .dependente-card .card-header {
+        background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+        border-bottom: 1px solid #dee2e6;
+    }
+
+/* ========================================
+   CONSENTIMENTOS SECTION
+======================================== */
+.termo-content {
+    font-family: 'Georgia', serif;
+    line-height: 1.8;
+    color: #444;
+}
+
+    .termo-content p {
+        text-align: justify;
+    }
+
+.consentimento-item {
+    border: 2px solid #e9ecef;
+    border-radius: var(--border-radius);
+    transition: var(--transition);
+    cursor: pointer;
+}
+
+    .consentimento-item:hover {
+        border-color: var(--primary-color);
+        background: #f8f9ff;
+    }
+
+    .consentimento-item.checked {
+        border-color: var(--success-color);
+        background: #f0f9f4;
+    }
+
+/* ========================================
+   DOCUMENTO GERADO
+======================================== */
+.documento-gerado-container {
+    animation: bounceIn 0.8s ease;
+}
+
+@keyframes bounceIn {
+    0% {
+        opacity: 0;
+        transform: scale(0.3);
+    }
+
+    50% {
+        opacity: 1;
+        transform: scale(1.05);
+    }
+
+    70% {
+        transform: scale(0.9);
+    }
+
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.success-icon {
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.1);
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}
+
+/* ========================================
+   ALERTS
+======================================== */
+.alert {
+    border: none;
+    border-radius: var(--border-radius);
+    padding: 16px 20px;
+    font-weight: 500;
+}
+
+.alert-success {
+    background: linear-gradient(135deg, #d4edda, #c3e6cb);
+    color: #155724;
+    border-left: 4px solid var(--success-color);
+}
+
+.alert-info {
+    background: linear-gradient(135deg, #d1ecf1, #bee5eb);
+    color: #0c5460;
+    border-left: 4px solid #17a2b8;
+}
+
+.alert-warning {
+    background: linear-gradient(135deg, #fff3cd, #ffeaa7);
+    color: #856404;
+    border-left: 4px solid var(--warning-color);
+}
+
+.alert-danger {
+    background: linear-gradient(135deg, #f8d7da, #f5c6cb);
+    color: #721c24;
+    border-left: 4px solid var(--danger-color);
+}
+
+/* ========================================
+   LOADING STATES
+======================================== */
+.spinner-border-sm {
+    width: 1rem;
+    height: 1rem;
+}
+
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+}
+
+.loading-content {
+    background: white;
+    padding: 30px;
+    border-radius: var(--border-radius);
+    text-align: center;
+    box-shadow: var(--box-shadow);
+}
+
+/* ========================================
+   RESPONSIVE DESIGN
+======================================== */
+@media (max-width: 768px) {
+    .stepper-container {
+        padding: 15px;
+    }
+
+    .stepper-circle {
+        width: 35px;
+        height: 35px;
+        font-size: 12px;
+    }
+
+    .stepper-line {
+        margin: 0 10px;
+    }
+
+    .step-icon {
+        width: 40px;
+        height: 40px;
+    }
+
+    .card-body {
+        padding: 20px !important;
+    }
+
+    .btn {
+        padding: 10px 20px;
+        font-size: 14px;
+    }
+
+    .form-control {
+        padding: 10px 12px;
+        font-size: 16px; /* Evita zoom no iOS */
+    }
+
+    h4 {
+        font-size: 1.3rem;
+    }
+
+    .container {
+        padding-left: 15px;
+        padding-right: 15px;
+    }
+}
+
+@media (max-width: 576px) {
+    .d-flex.justify-content-between {
+        flex-direction: column;
+        gap: 15px;
+    }
+
+        .d-flex.justify-content-between .btn {
+            width: 100%;
+        }
+
+    .stepper-container .d-flex {
+        flex-direction: column;
+        gap: 20px;
+    }
+
+    .stepper-line {
+        width: 2px;
+        height: 30px;
+        margin: 10px auto;
+    }
+}
+
+/* ========================================
+   PRINT STYLES
+======================================== */
+@media print {
+    .stepper-container,
+    .btn,
+    footer {
+        display: none !important;
+    }
+
+    .card {
+        box-shadow: none !important;
+        border: 1px solid #ddd !important;
+    }
+
+    body {
+        background: white !important;
+    }
+}
+
+/* ========================================
+   ACCESSIBILITY
+======================================== */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+.btn:focus,
+.form-control:focus,
+.form-check-input:focus {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+}
+
+/* ========================================
+   ANIMATIONS E TRANSITIONS
+======================================== */
+.fade-in {
+    animation: fadeIn 0.5s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+.slide-up {
+    animation: slideUp 0.4s ease;
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ========================================
+   CUSTOM SCROLLBAR
+======================================== */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--primary-color);
+    border-radius: 4px;
+}
+
+    ::-webkit-scrollbar-thumb:hover {
+        background: #3367d6;
+    }
+
+/* ========================================
+   UTILITIES
+======================================== */
+.text-primary-custom {
+    color: var(--primary-color) !important;
+}
+
+.bg-primary-custom {
+    background: linear-gradient(135deg, var(--primary-color), #5a9eff) !important;
+}
+
+.border-primary-custom {
+    border-color: var(--primary-color) !important;
 }

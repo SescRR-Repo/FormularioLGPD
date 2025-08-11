@@ -1,0 +1,212 @@
+﻿// src/components/Step4Consentimentos.jsx
+import React, { useState } from 'react';
+
+const Step4Consentimentos = ({ formData, onInputChange, onSubmit, onPrev, loading }) => {
+    const [consentimentos, setConsentimentos] = useState({
+        tratamentoDados: false,
+        finalidadesTratamento: false,
+        compartilhamentoDados: false,
+        segurancaDados: false,
+        direitosTitular: false,
+        direitoRevogacao: false
+    });
+
+    const [termoLido, setTermoLido] = useState(false);
+
+    const handleConsentimentoChange = (campo, valor) => {
+        const novosConsentimentos = { ...consentimentos, [campo]: valor };
+        setConsentimentos(novosConsentimentos);
+        onInputChange('consentimentos', novosConsentimentos);
+    };
+
+    const todosConsentimentosMarcados = Object.values(consentimentos).every(Boolean);
+
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        if (todosConsentimentosMarcados) {
+            onSubmit();
+        }
+    };
+
+    const conteudoTermo = `
+**CREDENCIAL SESC**
+
+**CONSENTIMENTO PARA TRATAMENTO DE DADOS PESSOAIS**
+
+Este documento tem por finalidade registrar, de forma clara e objetiva, a manifestação livre, informada e inequívoca pela qual o DECLARANTE consente com o tratamento de seus dados pessoais para finalidades específicas, nos termos da Lei nº 13.709/2018 – Lei Geral de Proteção de Dados Pessoais (LGPD).
+
+Por meio deste instrumento, autorizo o Serviço Social do Comércio – Departamento Regional em Roraima, inscrito no CNPJ sob nº 03.488.834/0001-86, doravante denominado CONTROLADOR, a realizar o tratamento dos meus dados pessoais, inclusive dados sensíveis, bem como os dados dos meus dependentes devidamente cadastrados, em razão do uso das instalações, matrículas/credenciamentos, inscrições e/ou participações nas ações e modalidades de cultura, esporte, lazer, assistência, saúde, educação, ou qualquer outra atividade promovida pela instituição.
+
+**1. Dados Pessoais**
+
+O Controlador fica autorizado a tomar decisões referentes ao tratamento e a realizar o tratamento dos seguintes dados pessoais do Titular:
+
+- Nome completo.
+- Data de nascimento.
+- Número e imagem da Carteira de Identidade (RG), Número e imagem do Cadastro de Pessoas Físicas (CPF).
+- Estado civil.
+- Nível de instrução ou escolaridade.
+- Endereço completo.
+- Números de telefone, WhatsApp e endereços de e-mail.
+
+**2. Finalidades do Tratamento dos Dados**
+
+O tratamento dos dados pessoais listados neste termo tem as seguintes finalidades:
+
+- Possibilitar que o Controlador identifique e entre em contato com o Titular para fins de relacionamento comercial.
+- Possibilitar que o Controlador elabore contratos comerciais e emita cobranças contra o Titular.
+- Possibilitar que o Controlador envie ou forneça ao Titular seus produtos e serviços.
+
+**3. Direitos do Titular**
+
+O Titular tem direito a obter do Controlador, em relação aos dados por ele tratados:
+
+I. Confirmação da existência de tratamento;
+II. Acesso aos dados;
+III. Correção de dados incompletos, inexatos ou desatualizados;
+IV. Anonimização, bloqueio ou eliminação de dados desnecessários;
+V. Portabilidade dos dados;
+VI. Eliminação dos dados pessoais tratados com o consentimento do titular;
+VII. Revogação do consentimento.
+
+**ENCARREGADO PELO TRATAMENTO DE DADOS (DPO)**
+
+Para dúvidas, solicitações ou exercício de direitos relacionados aos dados pessoais:
+
+- **Nome/Cargo**: Cláudia Abreu – DPO do Sesc/RR
+- **E-mail**: lgpd@sescrr.com.br
+  `;
+
+    return (
+        <div className="step-container">
+            <div className="row justify-content-center">
+                <div className="col-md-10">
+                    <div className="card border-0 shadow-sm">
+                        <div className="card-body p-4">
+                            <div className="d-flex align-items-center mb-4">
+                                <div className="step-icon me-3">
+                                    <i className="bi bi-shield-check fs-4 text-primary"></i>
+                                </div>
+                                <h4 className="mb-0">Consentimentos LGPD</h4>
+                            </div>
+
+                            {/* Exibição do Termo */}
+                            <div className="card mb-4 bg-light">
+                                <div className="card-header">
+                                    <h6 className="mb-0">
+                                        <i className="bi bi-file-text me-2"></i>
+                                        Termo de Consentimento - LGPD
+                                    </h6>
+                                </div>
+                                <div className="card-body" style={{ maxHeight: '400px', overflowY: 'auto' }}>
+                                    <div className="termo-content">
+                                        {conteudoTermo.split('\n').map((linha, index) => (
+                                            <p key={index} className="mb-2" style={{ fontSize: '0.9rem', lineHeight: '1.4' }}>
+                                                {linha.startsWith('**') ? (
+                                                    <strong>{linha.replace(/\*\*/g, '')}</strong>
+                                                ) : (
+                                                    linha
+                                                )}
+                                            </p>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <form onSubmit={handleSubmit}>
+                                <div className="alert alert-info">
+                                    <strong>Para finalizar, é necessário concordar com todos os termos de consentimento:</strong>
+                                </div>
+
+                                {/* Consentimentos */}
+                                <div className="mb-4">
+                                    {[
+                                        {
+                                            key: 'tratamentoDados',
+                                            titulo: 'Tratamento de Dados Pessoais',
+                                            descricao: 'Autorizo o tratamento dos meus dados pessoais conforme descrito no termo.'
+                                        },
+                                        {
+                                            key: 'finalidadesTratamento',
+                                            titulo: 'Finalidades do Tratamento',
+                                            descricao: 'Estou ciente das finalidades para as quais meus dados serão utilizados.'
+                                        },
+                                        {
+                                            key: 'compartilhamentoDados',
+                                            titulo: 'Compartilhamento de Dados',
+                                            descricao: 'Autorizo o compartilhamento dos dados conforme as finalidades listadas.'
+                                        },
+                                        {
+                                            key: 'segurancaDados',
+                                            titulo: 'Segurança dos Dados',
+                                            descricao: 'Estou ciente das medidas de segurança adotadas pelo controlador.'
+                                        },
+                                        {
+                                            key: 'direitosTitular',
+                                            titulo: 'Direitos do Titular',
+                                            descricao: 'Estou ciente dos meus direitos como titular dos dados.'
+                                        },
+                                        {
+                                            key: 'direitoRevogacao',
+                                            titulo: 'Direito de Revogação',
+                                            descricao: 'Estou ciente que posso revogar este consentimento a qualquer momento.'
+                                        }
+                                    ].map((item) => (
+                                        <div key={item.key} className="card mb-3 border">
+                                            <div className="card-body">
+                                                <div className="form-check">
+                                                    <input
+                                                        className="form-check-input"
+                                                        type="checkbox"
+                                                        id={item.key}
+                                                        checked={consentimentos[item.key]}
+                                                        onChange={(e) => handleConsentimentoChange(item.key, e.target.checked)}
+                                                    />
+                                                    <label className="form-check-label" htmlFor={item.key}>
+                                                        <strong>{item.titulo}</strong>
+                                                        <br />
+                                                        <small className="text-muted">{item.descricao}</small>
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                <div className="d-flex justify-content-between">
+                                    <button
+                                        type="button"
+                                        className="btn btn-outline-secondary"
+                                        onClick={onPrev}
+                                        disabled={loading}
+                                    >
+                                        <i className="bi bi-arrow-left me-1"></i> Voltar
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        className={`btn ${todosConsentimentosMarcados ? 'btn-success' : 'btn-secondary'}`}
+                                        disabled={!todosConsentimentosMarcados || loading}
+                                    >
+                                        {loading ? (
+                                            <>
+                                                <span className="spinner-border spinner-border-sm me-2" role="status"></span>
+                                                Processando...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <i className="bi bi-file-earmark-pdf me-1"></i>
+                                                Gerar Documento
+                                            </>
+                                        )}
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+export default Step4Consentimentos;

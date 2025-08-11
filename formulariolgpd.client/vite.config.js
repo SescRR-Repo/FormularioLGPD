@@ -1,4 +1,4 @@
-import { fileURLToPath, URL } from 'node:url';
+﻿import { fileURLToPath, URL } from 'node:url';
 
 import { defineConfig } from 'vite';
 import plugin from '@vitejs/plugin-react';
@@ -48,6 +48,10 @@ export default defineConfig({
     server: {
         proxy: {
             '^/weatherforecast': {
+                target,
+                secure: false
+            },
+            '^/api': {
                 target,
                 secure: false
             }
