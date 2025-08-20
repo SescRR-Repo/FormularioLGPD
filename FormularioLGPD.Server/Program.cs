@@ -5,8 +5,6 @@ using FormularioLGPD.Server.Services.Interfaces;
 using FormularioLGPD.Server.Services;
 using FormularioLGPD.Server.Repositories.Interfaces;
 using FormularioLGPD.Server.Repositories;
-using DinkToPdf;
-using DinkToPdf.Contracts;
 using Serilog;
 
 namespace FormularioLGPD.Server
@@ -34,15 +32,12 @@ namespace FormularioLGPD.Server
             builder.Services.AddDbContext<ApplicationDbContext>(options =>
                 options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-            // DinkToPdf para geração de PDF
-            builder.Services.AddSingleton(typeof(IConverter), new SynchronizedConverter(new PdfTools()));
-
             // Repositórios
             builder.Services.AddScoped<ITermoAceiteRepository, TermoAceiteRepository>();
 
             // Serviços
             builder.Services.AddScoped<ITermoAceiteService, TermoAceiteService>();
-            builder.Services.AddScoped<IPdfService, PdfService>();
+            builder.Services.AddScoped<IPdfService, AlternativePdfService>(); // Usando implementação sem DLL nativa
             builder.Services.AddScoped<ILogService, LogService>();
 
             // CORS
@@ -95,7 +90,48 @@ namespace FormularioLGPD.Server
             {
                 using var scope = app.Services.CreateScope();
                 var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-                context.Database.EnsureCreated();
+                var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+                
+                try
+                {
+                    // Verificar se o banco existe e criar se necessário
+                    var canConnect = context.Database.CanConnect();
+                    if (!canConnect)
+                    {
+                        logger.LogInformation("Criando banco de dados...");
+                        context.Database.EnsureCreated();
+                        logger.LogInformation("Banco de dados criado com sucesso!");
+                    }
+                    else
+                    {
+                        logger.LogInformation("Banco de dados já existe e está acessível");
+                        
+                        // Aplicar migrations pendentes se houver
+                        var pendingMigrations = context.Database.GetPendingMigrations();
+                        if (pendingMigrations.Any())
+                        {
+                            logger.LogInformation("Aplicando migrations pendentes...");
+                            context.Database.Migrate();
+                            logger.LogInformation("Migrations aplicadas com sucesso!");
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "Erro ao configurar banco de dados: {Message}", ex.Message);
+                    
+                    // Tentar connection string alternativa se a primeira falhar
+                    logger.LogWarning("Tentando criar banco com EnsureCreated como fallback...");
+                    try
+                    {
+                        context.Database.EnsureCreated();
+                        logger.LogInformation("Banco criado com sucesso usando EnsureCreated");
+                    }
+                    catch (Exception ex2)
+                    {
+                        logger.LogError(ex2, "Falha total ao criar banco de dados. Verifique a connection string.");
+                    }
+                }
             }
 
             app.Run();
