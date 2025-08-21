@@ -3,8 +3,10 @@ import React, { useState } from 'react';
 import StepperProgress from './components/StepperProgress';
 import Step1TipoCadastro from './components/Step1TipoCadastro';
 import Step2DadosPessoais from './components/Step2DadosPessoais';
+import Step2_5DadosTitular from './components/Step2_5DadosTitular';
 import Step3Dependentes from './components/Step3Dependentes';
 import Step4Consentimentos from './components/Step4Consentimentos';
+import DocumentoPrevia from './components/DocumentoPrevia';
 import DocumentoGerado from './components/DocumentoGerado';
 import ApiService from './services/api';
 import 'bootstrap/dist/css/bootstrap.min.css';
@@ -26,9 +28,12 @@ function App() {
         estadoCivil: '',
         naturalidade: '',
         escolaridade: '',
-        serieSemestre: '',
+        situacao: '',
         telefone: '',
         email: '',
+
+        // Step 2.5 (Para dependentes maiores)
+        dadosTitular: null,
 
         // Step 3
         dependentes: [],
@@ -37,27 +42,79 @@ function App() {
         consentimentos: {}
     });
 
+    // ===== LÓGICA DE FLUXOS CONDICIONAIS =====
+    const getFlowSteps = (qualificacao) => {
+        switch (qualificacao) {
+            case 'titular':
+                return [
+                    { key: 'tipo', title: 'Tipo de Cadastro', component: Step1TipoCadastro },
+                    { key: 'dados', title: 'Dados Pessoais', component: Step2DadosPessoais },
+                    { key: 'dependentes', title: 'Dependentes', component: Step3Dependentes },
+                    { key: 'consentimentos', title: 'Consentimentos', component: Step4Consentimentos },
+                    { key: 'previa', title: 'Prévia do Documento', component: DocumentoPrevia }
+                ];
+
+            case 'dependenteMaior':
+                return [
+                    { key: 'tipo', title: 'Tipo de Cadastro', component: Step1TipoCadastro },
+                    { key: 'dados', title: 'Seus Dados', component: Step2DadosPessoais },
+                    { key: 'titular', title: 'Dados do Titular', component: Step2_5DadosTitular },
+                    { key: 'consentimentos', title: 'Consentimentos', component: Step4Consentimentos },
+                    { key: 'previa', title: 'Prévia do Documento', component: DocumentoPrevia }
+                ];
+
+            case 'responsavelMenor':
+            case 'responsavelOrfao':
+            case 'curadorTutor':
+                return [
+                    { key: 'tipo', title: 'Tipo de Cadastro', component: Step1TipoCadastro },
+                    { key: 'dados', title: 'Dados Pessoais', component: Step2DadosPessoais },
+                    { key: 'dependentes', title: 'Dependentes', component: Step3Dependentes },
+                    { key: 'consentimentos', title: 'Consentimentos', component: Step4Consentimentos },
+                    { key: 'previa', title: 'Prévia do Documento', component: DocumentoPrevia }
+                ];
+
+            default:
+                return [
+                    { key: 'tipo', title: 'Tipo de Cadastro', component: Step1TipoCadastro },
+                    { key: 'dados', title: 'Dados Pessoais', component: Step2DadosPessoais },
+                    { key: 'consentimentos', title: 'Consentimentos', component: Step4Consentimentos },
+                    { key: 'previa', title: 'Prévia do Documento', component: DocumentoPrevia }
+                ];
+        }
+    };
+
+    // Obter steps baseado na qualificação atual
+    const currentFlow = getFlowSteps(formData.qualificacao);
+    const maxSteps = currentFlow.length;
+
     const handleInputChange = (field, value) => {
-        setFormData(prev => ({
-            ...prev,
-            [field]: value
-        }));
+        setFormData(prev => {
+            const newData = { ...prev, [field]: value };
+            
+            // Se mudou a qualificação, resetar o step para 1
+            if (field === 'qualificacao' && value !== prev.qualificacao) {
+                setCurrentStep(1);
+            }
+            
+            return newData;
+        });
     };
 
     const nextStep = () => {
-        setCurrentStep(prev => Math.min(prev + 1, 4));
+        setCurrentStep(prev => Math.min(prev + 1, maxSteps));
     };
 
     const prevStep = () => {
         setCurrentStep(prev => Math.max(prev - 1, 1));
     };
 
-    const handleSubmit = async () => {
+    const handlePreviewConfirm = async () => {
         setLoading(true);
         try {
             const resultado = await ApiService.criarTermoAceite(formData);
             setTermoGerado(resultado);
-            setCurrentStep(5); // Página de sucesso
+            setCurrentStep(maxSteps + 1); // Ir para DocumentoGerado
         } catch (error) {
             alert('Erro ao processar termo: ' + error.message);
         } finally {
@@ -84,9 +141,10 @@ function App() {
             estadoCivil: '',
             naturalidade: '',
             escolaridade: '',
-            serieSemestre: '',
+            situacao: '',
             telefone: '',
             email: '',
+            dadosTitular: null,
             dependentes: [],
             consentimentos: {}
         });
@@ -94,56 +152,53 @@ function App() {
         setTermoGerado(null);
     };
 
-    const renderStep = () => {
-        switch (currentStep) {
-            case 1:
-                return (
-                    <Step1TipoCadastro
-                        formData={formData}
-                        onInputChange={handleInputChange}
-                        onNext={nextStep}
-                    />
-                );
-            case 2:
-                return (
-                    <Step2DadosPessoais
-                        formData={formData}
-                        onInputChange={handleInputChange}
-                        onNext={nextStep}
-                        onPrev={prevStep}
-                    />
-                );
-            case 3:
-                return (
-                    <Step3Dependentes
-                        formData={formData}
-                        onInputChange={handleInputChange}
-                        onNext={nextStep}
-                        onPrev={prevStep}
-                    />
-                );
-            case 4:
-                return (
-                    <Step4Consentimentos
-                        formData={formData}
-                        onInputChange={handleInputChange}
-                        onSubmit={handleSubmit}
-                        onPrev={prevStep}
-                        loading={loading}
-                    />
-                );
-            case 5:
-                return (
-                    <DocumentoGerado
-                        termoData={termoGerado}
-                        onVoltar={() => setCurrentStep(4)}
-                        onDownload={handleDownload}
-                        onNovoTermo={handleNovoTermo}
-                    />
-                );
-            default:
-                return null;
+    const renderCurrentStep = () => {
+        // Se está na página final (DocumentoGerado)
+        if (currentStep > maxSteps) {
+            return (
+                <DocumentoGerado
+                    termoData={termoGerado}
+                    onVoltar={() => setCurrentStep(maxSteps)}
+                    onDownload={handleDownload}
+                    onNovoTermo={handleNovoTermo}
+                />
+            );
         }
+
+        // Renderizar step atual baseado no fluxo
+        const currentStepConfig = currentFlow[currentStep - 1];
+        if (!currentStepConfig) return null;
+
+        const StepComponent = currentStepConfig.component;
+        const commonProps = {
+            formData,
+            onInputChange: handleInputChange,
+            onNext: nextStep,
+            onPrev: prevStep
+        };
+
+        // Props específicas por componente
+        if (StepComponent === Step4Consentimentos) {
+            return (
+                <StepComponent
+                    {...commonProps}
+                    onSubmit={nextStep} // Vai para prévia
+                    loading={loading}
+                />
+            );
+        }
+
+        if (StepComponent === DocumentoPrevia) {
+            return (
+                <StepComponent
+                    {...commonProps}
+                    onConfirm={handlePreviewConfirm}
+                    loading={loading}
+                />
+            );
+        }
+
+        return <StepComponent {...commonProps} />;
     };
 
     return (
@@ -156,18 +211,22 @@ function App() {
                 </div>
             </div>
 
-            {/* Progress Stepper */}
-            {currentStep <= 4 && (
+            {/* Progress Stepper - Só mostrar se não estiver na página final */}
+            {currentStep <= maxSteps && (
                 <div className="bg-light py-3">
                     <div className="container">
-                        <StepperProgress currentStep={currentStep} />
+                        <StepperProgress 
+                            currentStep={currentStep} 
+                            steps={currentFlow}
+                            qualificacao={formData.qualificacao}
+                        />
                     </div>
                 </div>
             )}
 
             {/* Main Content */}
             <div className="container py-4">
-                {renderStep()}
+                {renderCurrentStep()}
             </div>
 
             {/* Footer */}

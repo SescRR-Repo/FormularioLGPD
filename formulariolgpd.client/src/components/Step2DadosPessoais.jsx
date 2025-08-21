@@ -47,6 +47,32 @@ const Step2DadosPessoais = ({ formData, onInputChange, onNext, onPrev }) => {
         onInputChange('telefone', formatted);
     };
 
+    // Opções de escolaridade
+    const opcoesEscolaridade = [
+        { value: '', label: 'Selecione...' },
+        { value: 'fundamental-incompleto', label: 'Ensino Fundamental Incompleto' },
+        { value: 'fundamental-completo', label: 'Ensino Fundamental Completo' },
+        { value: 'medio-incompleto', label: 'Ensino Médio Incompleto' },
+        { value: 'medio-completo', label: 'Ensino Médio Completo' },
+        { value: 'tecnico-incompleto', label: 'Ensino Técnico Incompleto' },
+        { value: 'tecnico-completo', label: 'Ensino Técnico Completo' },
+        { value: 'superior-incompleto', label: 'Ensino Superior Incompleto' },
+        { value: 'superior-completo', label: 'Ensino Superior Completo' },
+        { value: 'pos-graduacao', label: 'Pós-Graduação' },
+        { value: 'mestrado', label: 'Mestrado' },
+        { value: 'doutorado', label: 'Doutorado' }
+    ];
+
+    // Opções de situação acadêmica
+    const opcoesSituacao = [
+        { value: '', label: 'Selecione...' },
+        { value: 'concluido', label: 'Concluído' },
+        { value: 'cursando', label: 'Cursando' },
+        { value: 'trancado', label: 'Trancado' },
+        { value: 'interrompido', label: 'Interrompido' },
+        { value: 'nao-se-aplica', label: 'Não se aplica' }
+    ];
+
     return (
         <div className="step-container">
             <div className="row justify-content-center">
@@ -118,24 +144,32 @@ const Step2DadosPessoais = ({ formData, onInputChange, onNext, onPrev }) => {
 
                                     <div className="col-md-6 mb-3">
                                         <label className="form-label">Escolaridade</label>
-                                        <input
-                                            type="text"
-                                            className="form-control"
-                                            placeholder="Ex: Ensino Superior Completo"
+                                        <select
+                                            className="form-select"
                                             value={formData.escolaridade || ''}
                                             onChange={(e) => onInputChange('escolaridade', e.target.value)}
-                                        />
+                                        >
+                                            {opcoesEscolaridade.map(opcao => (
+                                                <option key={opcao.value} value={opcao.value}>
+                                                    {opcao.label}
+                                                </option>
+                                            ))}
+                                        </select>
                                     </div>
 
                                     <div className="col-md-6 mb-3">
-                                        <label className="form-label">Série/Semestre</label>
-                                        <input
-                                            type="text"
-                                            className="form-control"
-                                            placeholder="Ex: 8º semestre"
-                                            value={formData.serieSemestre || ''}
-                                            onChange={(e) => onInputChange('serieSemestre', e.target.value)}
-                                        />
+                                        <label className="form-label">Situação</label>
+                                        <select
+                                            className="form-select"
+                                            value={formData.situacao || ''}
+                                            onChange={(e) => onInputChange('situacao', e.target.value)}
+                                        >
+                                            {opcoesSituacao.map(opcao => (
+                                                <option key={opcao.value} value={opcao.value}>
+                                                    {opcao.label}
+                                                </option>
+                                            ))}
+                                        </select>
                                     </div>
 
                                     <div className="col-md-6 mb-3">

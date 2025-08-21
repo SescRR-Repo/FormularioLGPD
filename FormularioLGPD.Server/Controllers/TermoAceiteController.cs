@@ -79,7 +79,7 @@ namespace FormularioLGPD.Server.Controllers
         }
 
         /// <summary>
-        /// Faz download do PDF do termo
+        /// Faz download do documento do termo (HTML pronto para impressão)
         /// </summary>
         [HttpGet("{id}/pdf")]
         public async Task<IActionResult> DownloadPdf(int id)
@@ -92,15 +92,16 @@ namespace FormularioLGPD.Server.Controllers
                     return NotFound(new { message = "Termo não encontrado" });
                 }
 
-                var pdfBytes = await _termoService.GerarPdfTermoAsync(id);
-                var nomeArquivo = $"termo_lgpd_{termo.NumeroTermo}.pdf";
+                var htmlBytes = await _termoService.GerarPdfTermoAsync(id);
+                var nomeArquivo = $"termo_lgpd_{termo.NumeroTermo}.html";
 
-                return File(pdfBytes, "application/pdf", nomeArquivo);
+                // Retornar como HTML que pode ser impresso como PDF
+                return File(htmlBytes, "text/html; charset=utf-8", nomeArquivo);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Erro ao gerar PDF do termo {Id}", id);
-                return StatusCode(500, new { message = "Erro ao gerar PDF" });
+                _logger.LogError(ex, "Erro ao gerar documento do termo {Id}", id);
+                return StatusCode(500, new { message = "Erro ao gerar documento" });
             }
         }
 
