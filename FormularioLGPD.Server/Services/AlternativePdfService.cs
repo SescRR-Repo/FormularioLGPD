@@ -40,27 +40,56 @@ namespace FormularioLGPD.Server.Services
         {
             try
             {
+                // Usar pasta Temp se a pasta configurada não funcionar
                 var pastaStorage = _configuration["PdfSettings:StoragePath"] ?? "PDFs";
-
-                if (!Directory.Exists(pastaStorage))
+                var pastaAlternativa = Path.Combine(Path.GetTempPath(), "FormularioLGPD", "PDFs");
+                
+                string pastaFinal;
+                
+                try
                 {
-                    Directory.CreateDirectory(pastaStorage);
+                    // Tentar criar a pasta principal primeiro
+                    if (!Directory.Exists(pastaStorage))
+                    {
+                        Directory.CreateDirectory(pastaStorage);
+                    }
+                    
+                    // Testar se consegue escrever na pasta
+                    var testFile = Path.Combine(pastaStorage, "test.txt");
+                    await File.WriteAllTextAsync(testFile, "test");
+                    File.Delete(testFile);
+                    
+                    pastaFinal = pastaStorage;
+                    _logger.LogInformation("✅ Usando pasta principal: {Pasta}", pastaStorage);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning("⚠️ Erro na pasta principal ({Pasta}): {Erro}. Usando pasta temp.", pastaStorage, ex.Message);
+                    
+                    // Usar pasta temp como fallback
+                    if (!Directory.Exists(pastaAlternativa))
+                    {
+                        Directory.CreateDirectory(pastaAlternativa);
+                    }
+                    
+                    pastaFinal = pastaAlternativa;
+                    _logger.LogInformation("✅ Usando pasta temp: {Pasta}", pastaAlternativa);
                 }
 
                 // Salvar como .html por enquanto
                 var nomeArquivo = $"{numeroTermo}_{DateTime.Now:yyyyMMdd_HHmmss}.html";
-                var caminhoCompleto = Path.Combine(pastaStorage, nomeArquivo);
+                var caminhoCompleto = Path.Combine(pastaFinal, nomeArquivo);
 
                 await File.WriteAllBytesAsync(caminhoCompleto, pdfBytes);
 
-                _logger.LogInformation("Arquivo HTML salvo com sucesso: {CaminhoArquivo}", caminhoCompleto);
+                _logger.LogInformation("✅ Arquivo HTML salvo com sucesso: {CaminhoArquivo}", caminhoCompleto);
 
                 return caminhoCompleto;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Erro ao salvar arquivo para o termo {NumeroTermo}", numeroTermo);
-                throw;
+                _logger.LogError(ex, "💥 Erro ao salvar arquivo para o termo {NumeroTermo}", numeroTermo);
+                throw new InvalidOperationException($"Erro ao salvar arquivo: {ex.Message}", ex);
             }
         }
 
@@ -75,6 +104,9 @@ namespace FormularioLGPD.Server.Services
         {
             var titular = termo.Titular;
             var dependentes = titular.Dependentes;
+
+            // Obter tipo de cadastro do formData (precisa ser passado no DTO)
+            var tipoCadastro = ObterTipoCadastroFromTermo(termo);
 
             var html = new StringBuilder();
 
@@ -167,13 +199,16 @@ namespace FormularioLGPD.Server.Services
 </head>
 <body>");
 
-            html.Append(@"
+            // Checkboxes dinâmicos baseados no tipo de cadastro
+            var (cadastroChecked, renovacaoChecked, inclusaoChecked) = ObterCheckboxStates(tipoCadastro);
+
+            html.Append($@"
     <div class='header'>
         <div class='title'>CREDENCIAL SESC</div>
         <div class='checkbox'>
-            <label><input type='checkbox' checked disabled> Cadastro</label>
-            <label><input type='checkbox' disabled> Renovação</label>
-            <label><input type='checkbox' disabled> Inclusão de dependente</label>
+            <label><input type='checkbox' {cadastroChecked} disabled> Cadastro</label>
+            <label><input type='checkbox' {renovacaoChecked} disabled> Renovação</label>
+            <label><input type='checkbox' {inclusaoChecked} disabled> Inclusão de dependente</label>
         </div>
         <div class='subtitle'>CONSENTIMENTO PARA TRATAMENTO DE DADOS PESSOAIS</div>
     </div>");
@@ -277,6 +312,23 @@ namespace FormularioLGPD.Server.Services
                 QualificacaoLegal.ResponsavelOrfao => "Responsável por dependente órfão do titular",
                 QualificacaoLegal.CuradorTutor => "Curador, Tutor ou Guardião legal",
                 _ => "Não especificado"
+            };
+        }
+
+        private string ObterTipoCadastroFromTermo(TermoAceite termo)
+        {
+            // Agora usar o campo TipoCadastro diretamente do banco
+            return termo.TipoCadastro ?? "cadastro";
+        }
+
+        private (string cadastro, string renovacao, string inclusao) ObterCheckboxStates(string tipoCadastro)
+        {
+            return tipoCadastro?.ToLower() switch
+            {
+                "cadastro" => ("checked", "", ""),
+                "renovacao" => ("", "checked", ""),
+                "inclusao" or "inclusao-dependente" => ("", "", "checked"),
+                _ => ("checked", "", "") // Padrão: cadastro
             };
         }
     }

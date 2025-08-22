@@ -53,6 +53,8 @@ namespace FormularioLGPD.Server.Models
 
         // Relacionamentos
         public ICollection<Dependente> Dependentes { get; set; } = new List<Dependente>();
-        public TermoAceite? TermoAceite { get; set; }
+        
+        // ✅ MUDANÇA: Agora um titular pode ter múltiplos termos (1:N)
+        public ICollection<TermoAceite> TermosAceite { get; set; } = new List<TermoAceite>();
     }
 }

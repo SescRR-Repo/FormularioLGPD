@@ -11,5 +11,11 @@ namespace FormularioLGPD.Server.Services.Interfaces
         Task<bool> ValidarCpfExistenteAsync(string cpf);
         Task<TermoAceite?> ObterTermoPorIdAsync(int id);
         string GerarNumeroTermo();
+        
+        // ✅ NOVOS MÉTODOS ADICIONADOS
+        Task<int> ContarTermosPorCpfAsync(string cpf);
+        Task<List<TermoAceite>> ObterTermosPorCpfAsync(string cpf);
+        Task<TermoAceite?> ObterUltimoTermoPorCpfAsync(string cpf);
+        Task<Titular?> ObterTitularPorCpfAsync(string cpf); // ✅ MÉTODO FALTANTE
     }
 }

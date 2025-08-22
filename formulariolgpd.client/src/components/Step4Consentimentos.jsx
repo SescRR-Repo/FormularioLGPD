@@ -3,15 +3,9 @@ import React, { useState } from 'react';
 
 const Step4Consentimentos = ({ formData, onInputChange, onSubmit, onPrev, loading }) => {
     const [consentimentos, setConsentimentos] = useState({
-        tratamentoDados: false,
-        finalidadesTratamento: false,
-        compartilhamentoDados: false,
-        segurancaDados: false,
-        direitosTitular: false,
-        direitoRevogacao: false
+        consentimentoGeral: false,
+        consentimentoMenores: false
     });
-
-    const [termoLido, setTermoLido] = useState(false);
 
     const handleConsentimentoChange = (campo, valor) => {
         const novosConsentimentos = { ...consentimentos, [campo]: valor };
@@ -19,25 +13,42 @@ const Step4Consentimentos = ({ formData, onInputChange, onSubmit, onPrev, loadin
         onInputChange('consentimentos', novosConsentimentos);
     };
 
-    const todosConsentimentosMarcados = Object.values(consentimentos).every(Boolean);
+    // Verificar se há dependentes menores de idade
+    const temDependentesMenores = formData.dependentes?.some(dep => {
+        if (!dep.dataNascimento) return false;
+        const hoje = new Date();
+        const nascimento = new Date(dep.dataNascimento);
+        const idade = hoje.getFullYear() - nascimento.getFullYear();
+        const mesAtual = hoje.getMonth();
+        const mesNascimento = nascimento.getMonth();
+        
+        if (mesAtual < mesNascimento || (mesAtual === mesNascimento && hoje.getDate() < nascimento.getDate())) {
+            return (idade - 1) < 18;
+        }
+        return idade < 18;
+    }) || false;
+
+    // Validação: consentimento geral sempre obrigatório + consentimento menores se aplicável
+    const consentimentosValidos = consentimentos.consentimentoGeral && 
+        (temDependentesMenores ? consentimentos.consentimentoMenores : true);
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        if (todosConsentimentosMarcados) {
+        if (consentimentosValidos) {
             onSubmit();
         }
     };
 
     const conteudoTermo = `
-**CREDENCIAL SESC**
+CREDENCIAL SESC
 
-**CONSENTIMENTO PARA TRATAMENTO DE DADOS PESSOAIS**
+CONSENTIMENTO PARA TRATAMENTO DE DADOS PESSOAIS
 
 Este documento tem por finalidade registrar, de forma clara e objetiva, a manifestação livre, informada e inequívoca pela qual o DECLARANTE consente com o tratamento de seus dados pessoais para finalidades específicas, nos termos da Lei nº 13.709/2018 – Lei Geral de Proteção de Dados Pessoais (LGPD).
 
 Por meio deste instrumento, autorizo o Serviço Social do Comércio – Departamento Regional em Roraima, inscrito no CNPJ sob nº 03.488.834/0001-86, doravante denominado CONTROLADOR, a realizar o tratamento dos meus dados pessoais, inclusive dados sensíveis, bem como os dados dos meus dependentes devidamente cadastrados, em razão do uso das instalações, matrículas/credenciamentos, inscrições e/ou participações nas ações e modalidades de cultura, esporte, lazer, assistência, saúde, educação, ou qualquer outra atividade promovida pela instituição.
 
-**1. Dados Pessoais**
+1. Dados Pessoais
 
 O Controlador fica autorizado a tomar decisões referentes ao tratamento e a realizar o tratamento dos seguintes dados pessoais do Titular:
 
@@ -49,7 +60,7 @@ O Controlador fica autorizado a tomar decisões referentes ao tratamento e a rea
 - Endereço completo.
 - Números de telefone, WhatsApp e endereços de e-mail.
 
-**2. Finalidades do Tratamento dos Dados**
+2. Finalidades do Tratamento dos Dados
 
 O tratamento dos dados pessoais listados neste termo tem as seguintes finalidades:
 
@@ -57,7 +68,7 @@ O tratamento dos dados pessoais listados neste termo tem as seguintes finalidade
 - Possibilitar que o Controlador elabore contratos comerciais e emita cobranças contra o Titular.
 - Possibilitar que o Controlador envie ou forneça ao Titular seus produtos e serviços.
 
-**3. Direitos do Titular**
+3. Direitos do Titular
 
 O Titular tem direito a obter do Controlador, em relação aos dados por ele tratados:
 
@@ -69,12 +80,12 @@ V. Portabilidade dos dados;
 VI. Eliminação dos dados pessoais tratados com o consentimento do titular;
 VII. Revogação do consentimento.
 
-**ENCARREGADO PELO TRATAMENTO DE DADOS (DPO)**
+ENCARREGADO PELO TRATAMENTO DE DADOS (DPO)
 
 Para dúvidas, solicitações ou exercício de direitos relacionados aos dados pessoais:
 
-- **Nome/Cargo**: Cláudia Abreu – DPO do Sesc/RR
-- **E-mail**: lgpd@sescrr.com.br
+- Nome/Cargo: Cláudia Abreu – DPO do Sesc/RR
+- E-mail: lgpd@sescrr.com.br
   `;
 
     return (
@@ -115,62 +126,65 @@ Para dúvidas, solicitações ou exercício de direitos relacionados aos dados p
 
                             <form onSubmit={handleSubmit}>
                                 <div className="alert alert-info">
-                                    <strong>Para finalizar, é necessário concordar com todos os termos de consentimento:</strong>
+                                    <strong>Para finalizar, é necessário concordar com os termos de consentimento:</strong>
                                 </div>
 
                                 {/* Consentimentos */}
                                 <div className="mb-4">
-                                    {[
-                                        {
-                                            key: 'tratamentoDados',
-                                            titulo: 'Tratamento de Dados Pessoais',
-                                            descricao: 'Autorizo o tratamento dos meus dados pessoais conforme descrito no termo.'
-                                        },
-                                        {
-                                            key: 'finalidadesTratamento',
-                                            titulo: 'Finalidades do Tratamento',
-                                            descricao: 'Estou ciente das finalidades para as quais meus dados serão utilizados.'
-                                        },
-                                        {
-                                            key: 'compartilhamentoDados',
-                                            titulo: 'Compartilhamento de Dados',
-                                            descricao: 'Autorizo o compartilhamento dos dados conforme as finalidades listadas.'
-                                        },
-                                        {
-                                            key: 'segurancaDados',
-                                            titulo: 'Segurança dos Dados',
-                                            descricao: 'Estou ciente das medidas de segurança adotadas pelo controlador.'
-                                        },
-                                        {
-                                            key: 'direitosTitular',
-                                            titulo: 'Direitos do Titular',
-                                            descricao: 'Estou ciente dos meus direitos como titular dos dados.'
-                                        },
-                                        {
-                                            key: 'direitoRevogacao',
-                                            titulo: 'Direito de Revogação',
-                                            descricao: 'Estou ciente que posso revogar este consentimento a qualquer momento.'
-                                        }
-                                    ].map((item) => (
-                                        <div key={item.key} className="card mb-3 border">
+                                    {/* Consentimento Geral - SEMPRE OBRIGATÓRIO */}
+                                    <div className="card mb-3 border">
+                                        <div className="card-body">
+                                            <div className="form-check">
+                                                <input
+                                                    className="form-check-input"
+                                                    type="checkbox"
+                                                    id="consentimentoGeral"
+                                                    checked={consentimentos.consentimentoGeral}
+                                                    onChange={(e) => handleConsentimentoChange('consentimentoGeral', e.target.checked)}
+                                                />
+                                                <label className="form-check-label" htmlFor="consentimentoGeral">
+                                                    <strong>Consentimento para Tratamento de Dados Pessoais</strong>
+                                                    <br />
+                                                    <small className="text-justify">
+                                                        Declaro que li e compreendi os termos deste documento, estou ciente das finalidades e das formas de tratamento e compartilhamento dos meus dados pessoais, bem como dos direitos que me são assegurados. Autorizo, de forma livre, informada e inequívoca, o tratamento dos meus dados pessoais e dos dados de meus dependentes, nos termos aqui estabelecidos. Reconheço que posso revogar este consentimento a qualquer momento e que os dados serão armazenados apenas pelo tempo necessário ao cumprimento das finalidades, respeitados os prazos legais.
+                                                    </small>
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Consentimento para Menores - CONDICIONAL */}
+                                    {temDependentesMenores && (
+                                        <div className="card mb-3 border border-warning">
                                             <div className="card-body">
                                                 <div className="form-check">
                                                     <input
                                                         className="form-check-input"
                                                         type="checkbox"
-                                                        id={item.key}
-                                                        checked={consentimentos[item.key]}
-                                                        onChange={(e) => handleConsentimentoChange(item.key, e.target.checked)}
+                                                        id="consentimentoMenores"
+                                                        checked={consentimentos.consentimentoMenores}
+                                                        onChange={(e) => handleConsentimentoChange('consentimentoMenores', e.target.checked)}
                                                     />
-                                                    <label className="form-check-label" htmlFor={item.key}>
-                                                        <strong>{item.titulo}</strong>
+                                                    <label className="form-check-label" htmlFor="consentimentoMenores">
+                                                        <strong>Autorização para Tratamento de Dados de Menores</strong>
                                                         <br />
-                                                        <small className="text-muted">{item.descricao}</small>
+                                                        <small className="text-justify">
+                                                            Declaro, na qualidade de pai/mãe ou responsável legal, autorizo expressamente, de forma livre, informada e inequívoca, o tratamento dos dados pessoais do(s) menor(es) sob minha responsabilidade, conforme as finalidades deste termo, estando ciente das formas de tratamento, do eventual compartilhamento e dos direitos que me assistem nos termos da Lei Geral de Proteção de Dados. 
+                                                            <em>(Obrigatório conforme art. 14, §1º da LGPD)</em>
+                                                        </small>
                                                     </label>
                                                 </div>
                                             </div>
                                         </div>
-                                    ))}
+                                    )}
+
+                                    {temDependentesMenores && (
+                                        <div className="alert alert-warning">
+                                            <i className="bi bi-exclamation-triangle me-2"></i>
+                                            <strong>Atenção:</strong> Foi detectado que você possui dependentes menores de 18 anos. 
+                                            É obrigatório o consentimento específico para tratamento de dados de menores.
+                                        </div>
+                                    )}
                                 </div>
 
                                 <div className="d-flex justify-content-between">
@@ -184,8 +198,8 @@ Para dúvidas, solicitações ou exercício de direitos relacionados aos dados p
                                     </button>
                                     <button
                                         type="submit"
-                                        className={`btn ${todosConsentimentosMarcados ? 'btn-success' : 'btn-secondary'}`}
-                                        disabled={!todosConsentimentosMarcados || loading}
+                                        className={`btn ${consentimentosValidos ? 'btn-success' : 'btn-secondary'}`}
+                                        disabled={!consentimentosValidos || loading}
                                     >
                                         {loading ? (
                                             <>

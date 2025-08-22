@@ -39,9 +39,37 @@ namespace FormularioLGPD.Server.Repositories
 
         public async Task<bool> ExisteCpfAsync(string cpf)
         {
+            return await _context.TermosAceite
+                .AnyAsync(ta => ta.Titular.CPF == cpf && 
+                               ta.Titular.IsAtivo && 
+                               ta.StatusTermo == StatusTermo.Ativo);
+        }
+
+        // ✅ NOVO MÉTODO: Contar quantos termos um CPF possui (para logs)
+        public async Task<int> ContarTermosPorCpfAsync(string cpf)
+        {
             return await _context.Titulares
-                .AnyAsync(t => t.CPF == cpf && t.IsAtivo &&
-                          t.TermoAceite != null && t.TermoAceite.StatusTermo == StatusTermo.Ativo);
+                .Where(t => t.CPF == cpf)
+                .CountAsync();
+        }
+
+        // ✅ NOVO MÉTODO: Obter histórico de termos por CPF
+        public async Task<List<TermoAceite>> ObterTermosPorCpfAsync(string cpf)
+        {
+            return await _context.TermosAceite
+                .Include(t => t.Titular)
+                .ThenInclude(t => t.Dependentes)
+                .Where(t => t.Titular.CPF == cpf)
+                .OrderByDescending(t => t.DataHoraAceite)
+                .ToListAsync();
+        }
+
+        // ✅ NOVO MÉTODO: Obter titular por CPF
+        public async Task<Titular?> ObterTitularPorCpfAsync(string cpf)
+        {
+            return await _context.Titulares
+                .Include(t => t.Dependentes)
+                .FirstOrDefaultAsync(t => t.CPF == cpf);
         }
 
         public async Task<List<TermoAceite>> ListarAsync(int skip = 0, int take = 10)

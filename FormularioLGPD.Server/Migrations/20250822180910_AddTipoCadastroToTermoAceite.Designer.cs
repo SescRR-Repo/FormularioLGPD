@@ -4,6 +4,7 @@ using FormularioLGPD.Server.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace FormularioLGPD.Server.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250822180910_AddTipoCadastroToTermoAceite")]
+    partial class AddTipoCadastroToTermoAceite
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -191,7 +194,8 @@ namespace FormularioLGPD.Server.Migrations
                     b.HasIndex("NumeroTermo")
                         .IsUnique();
 
-                    b.HasIndex("TitularId");
+                    b.HasIndex("TitularId")
+                        .IsUnique();
 
                     b.ToTable("TermosAceite");
                 });
@@ -295,8 +299,8 @@ namespace FormularioLGPD.Server.Migrations
             modelBuilder.Entity("FormularioLGPD.Server.Models.TermoAceite", b =>
                 {
                     b.HasOne("FormularioLGPD.Server.Models.Titular", "Titular")
-                        .WithMany("TermosAceite")
-                        .HasForeignKey("TitularId")
+                        .WithOne("TermoAceite")
+                        .HasForeignKey("FormularioLGPD.Server.Models.TermoAceite", "TitularId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -307,7 +311,7 @@ namespace FormularioLGPD.Server.Migrations
                 {
                     b.Navigation("Dependentes");
 
-                    b.Navigation("TermosAceite");
+                    b.Navigation("TermoAceite");
                 });
 #pragma warning restore 612, 618
         }

@@ -34,10 +34,10 @@ namespace FormularioLGPD.Server.Data
                       .HasForeignKey(d => d.TitularId)
                       .OnDelete(DeleteBehavior.Cascade);
 
-                // Relacionamento um-para-um com TermoAceite
-                entity.HasOne(t => t.TermoAceite)
+                // ✅ NOVO: Relacionamento 1:N - Um titular pode ter múltiplos termos
+                entity.HasMany(t => t.TermosAceite)
                       .WithOne(ta => ta.Titular)
-                      .HasForeignKey<TermoAceite>(ta => ta.TitularId)
+                      .HasForeignKey(ta => ta.TitularId)
                       .OnDelete(DeleteBehavior.Cascade);
             });
 
