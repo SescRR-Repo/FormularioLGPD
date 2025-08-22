@@ -6,6 +6,9 @@ namespace FormularioLGPD.Server.DTOs
 {
     public class TermoAceiteCreateDTO
     {
+        [Required(ErrorMessage = "Tipo de cadastro é obrigatório")]
+        public string TipoCadastro { get; set; } = "cadastro"; // NOVO CAMPO ADICIONADO
+
         public TitularDTO Titular { get; set; } = new();
         public List<DependenteDTO> Dependentes { get; set; } = new();
         public bool AceiteConfirmado { get; set; }

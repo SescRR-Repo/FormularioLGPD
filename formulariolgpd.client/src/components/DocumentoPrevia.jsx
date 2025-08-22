@@ -50,6 +50,19 @@ const DocumentoPrevia = ({ formData, onConfirm, onPrev, loading }) => {
         return opcoes[value] || value || 'Não informado';
     };
 
+    // FUNÇÃO PARA OBTER BADGES DINÂMICOS DO TIPO DE CADASTRO
+    const obterBadgesTipoCadastro = () => {
+        const tipoCadastro = formData.tipoCadastro || 'cadastro';
+        
+        return {
+            cadastro: tipoCadastro === 'cadastro',
+            renovacao: tipoCadastro === 'renovacao',
+            inclusao: tipoCadastro === 'inclusao' || tipoCadastro === 'inclusao-dependente'
+        };
+    };
+
+    const badges = obterBadgesTipoCadastro();
+
     return (
         <div className="step-container">
             <div className="row justify-content-center">
@@ -75,9 +88,16 @@ const DocumentoPrevia = ({ formData, onConfirm, onPrev, loading }) => {
                                         <div className="text-center mb-4">
                                             <h3 className="text-primary fw-bold">CREDENCIAL SESC</h3>
                                             <div className="mb-3">
-                                                <span className="badge bg-primary me-2">✓ Cadastro</span>
-                                                <span className="badge bg-secondary me-2">Renovação</span>
-                                                <span className="badge bg-secondary">Inclusão de dependente</span>
+                                                {/* BADGES DINÂMICOS BASEADOS NO TIPO DE CADASTRO */}
+                                                <span className={`badge ${badges.cadastro ? 'bg-primary' : 'bg-secondary'} me-2`} title="Cadastro">
+                                                    {badges.cadastro ? '✓' : ''} Cadastro
+                                                </span>
+                                                <span className={`badge ${badges.renovacao ? 'bg-primary' : 'bg-secondary'} me-2`} title="Renovação">
+                                                    {badges.renovacao ? '✓' : ''} Renovação
+                                                </span>
+                                                <span className={`badge ${badges.inclusao ? 'bg-primary' : 'bg-secondary'}`} title="Inclusão de dependente">
+                                                    {badges.inclusao ? '✓' : ''} Inclusão de dependente
+                                                </span>
                                             </div>
                                             <h5 className="text-muted">CONSENTIMENTO PARA TRATAMENTO DE DADOS PESSOAIS</h5>
                                         </div>

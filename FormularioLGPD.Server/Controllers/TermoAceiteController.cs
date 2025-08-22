@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using FormularioLGPD.Server.Services.Interfaces;
 using FormularioLGPD.Server.DTOs;
 using FormularioLGPD.Server.Models;
+using FormularioLGPD.Server.Utils; // ADICIONAR ESTA LINHA
 
 namespace FormularioLGPD.Server.Controllers
 {
@@ -27,8 +28,32 @@ namespace FormularioLGPD.Server.Controllers
         {
             try
             {
+                var cpfMascarado = MascararCpf(dto?.Titular?.CPF);
+                
+                // VALIDAR CPF DO TITULAR
+                if (!CpfValidator.IsValid(dto.Titular.CPF))
+                {
+                    _logger.LogWarning("❌ CPF inválido recebido: {CPF}", cpfMascarado);
+                    return BadRequest(new { message = "CPF do titular é inválido" });
+                }
+
+                // VALIDAR CPF DOS DEPENDENTES
+                foreach (var dep in dto.Dependentes)
+                {
+                    if (!string.IsNullOrEmpty(dep.CPF) && !CpfValidator.IsValid(dep.CPF))
+                    {
+                        var depCpfMascarado = MascararCpf(dep.CPF);
+                        _logger.LogWarning("❌ CPF de dependente inválido: {CPF}", depCpfMascarado);
+                        return BadRequest(new { message = $"CPF do dependente {dep.Nome} é inválido" });
+                    }
+                }
+
+                _logger.LogInformation("🎯 Iniciando criação de termo. CPF: {CPF}, Tipo: {Tipo}", 
+                    cpfMascarado, dto.TipoCadastro);
+
                 if (!ModelState.IsValid)
                 {
+                    _logger.LogWarning("❌ ModelState inválido para CPF: {CPF}", cpfMascarado);
                     return BadRequest(ModelState);
                 }
 
@@ -36,19 +61,47 @@ namespace FormularioLGPD.Server.Controllers
                 var ipOrigem = ObterIpOrigem();
                 var userAgent = Request.Headers["User-Agent"].ToString();
 
+                _logger.LogInformation("🌐 Aceite recebido de IP: {IP}", MascararIp(ipOrigem));
+
                 var resultado = await _termoService.CriarTermoAceiteAsync(dto, ipOrigem, userAgent);
 
+                _logger.LogInformation("✅ Termo criado com sucesso. ID: {Id}, Número: {NumeroTermo}", 
+                    resultado.Id, resultado.NumeroTermo);
                 return Ok(resultado);
             }
             catch (InvalidOperationException ex)
             {
-                _logger.LogWarning(ex, "Erro de validação ao criar termo de aceite");
+                var cpfMascarado = MascararCpf(dto?.Titular?.CPF);
+                _logger.LogWarning(ex, "⚠️ Erro de validação para CPF: {CPF}. Erro: {Message}", 
+                    cpfMascarado, ex.Message);
                 return BadRequest(new { message = ex.Message });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Erro interno ao criar termo de aceite");
-                return StatusCode(500, new { message = "Erro interno do servidor" });
+                var cpfMascarado = MascararCpf(dto?.Titular?.CPF);
+                _logger.LogError(ex, "💥 Erro interno para CPF: {CPF}. Tipo: {ErrorType}", 
+                    cpfMascarado, ex.GetType().Name);
+                
+                var isDevelopment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Development";
+                
+                if (isDevelopment)
+                {
+                    return StatusCode(500, new { 
+                        message = "Erro interno do servidor", 
+                        error = ex.Message,
+                        details = ex.InnerException?.Message 
+                    });
+                }
+                else
+                {
+                    var codigoErro = Guid.NewGuid().ToString("N")[..8];
+                    _logger.LogError("🔍 Código de rastreamento: {CodigoErro}", codigoErro);
+                    
+                    return StatusCode(500, new { 
+                        message = "Erro interno do servidor",
+                        codigo = codigoErro
+                    });
+                }
             }
         }
 
@@ -60,20 +113,36 @@ namespace FormularioLGPD.Server.Controllers
         {
             try
             {
-                // Limpar CPF (remover pontos e traços)
                 var cpfLimpo = new string(cpf.Where(char.IsDigit).ToArray());
+                var cpfMascarado = MascararCpf(cpfLimpo);
 
                 if (cpfLimpo.Length != 11)
                 {
+                    _logger.LogWarning("❌ CPF inválido recebido: {CPF}", cpfMascarado);
                     return BadRequest(new { message = "CPF deve conter 11 dígitos" });
                 }
 
+                if (!CpfValidator.IsValid(cpfLimpo))
+                {
+                    _logger.LogWarning("❌ CPF inválido (algoritmo): {CPF}", cpfMascarado);
+                    return BadRequest(new { message = "CPF inválido" });
+                }
+
+                // ✅ NOVO: Não bloqueia mais, apenas informa
                 var existe = await _termoService.ValidarCpfExistenteAsync(cpfLimpo);
-                return Ok(new { existe, message = existe ? "CPF já possui termo ativo" : "CPF disponível" });
+                _logger.LogInformation("🔍 Validação CPF: {CPF} - Existe: {Existe}", cpfMascarado, existe);
+                
+                return Ok(new { 
+                    existe = existe,
+                    message = existe 
+                        ? "CPF já possui termo(s). Você pode criar um novo termo para renovação ou inclusão de dependentes."
+                        : "CPF disponível para primeiro termo"
+                });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Erro ao validar CPF: {CPF}", cpf);
+                var cpfMascarado = MascararCpf(cpf);
+                _logger.LogError(ex, "💥 Erro ao validar CPF: {CPF}", cpfMascarado);
                 return StatusCode(500, new { message = "Erro interno do servidor" });
             }
         }
@@ -236,6 +305,47 @@ Para dúvidas, solicitações ou exercício de direitos relacionados aos dados p
             }
         }
 
+        // ✅ NOVO MÉTODO: Obter titular por CPF
+        [HttpGet("titular/{cpf}")]
+        public async Task<ActionResult> ObterTitularPorCpf(string cpf)
+        {
+            try
+            {
+                // VALIDAR CPF
+                if (string.IsNullOrEmpty(cpf) || cpf.Length != 11 || !CpfValidator.IsValid(cpf))
+                {
+                    _logger.LogWarning("❌ CPF inválido recebido: {CPF}", cpf);
+                    return BadRequest(new { message = "CPF inválido" });
+                }
+
+                var titular = await _termoService.ObterTitularPorCpfAsync(cpf);
+                if (titular == null)
+                {
+                    return NotFound(new { message = "Titular não encontrado" });
+                }
+
+                var response = new
+                {
+                    nome = titular.Nome,
+                    cpf = titular.CPF,
+                    email = titular.Email,
+                    dependentes = titular.Dependentes.Select(d => new
+                    {
+                        nome = d.Nome,
+                        cpf = d.CPF,
+                        grauParentesco = d.GrauParentesco
+                    }).ToList()
+                };
+
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Erro ao obter titular por CPF: {CPF}", cpf);
+                return StatusCode(500, new { message = "Erro interno do servidor" });
+            }
+        }
+
         private string ObterIpOrigem()
         {
             // Verificar se há proxy/load balancer
@@ -252,6 +362,28 @@ Para dúvidas, solicitações ou exercício de direitos relacionados aos dados p
             }
 
             return HttpContext.Connection.RemoteIpAddress?.ToString() ?? "Desconhecido";
+        }
+
+        private string MascararCpf(string? cpf)
+        {
+            if (string.IsNullOrEmpty(cpf) || cpf.Length < 3)
+                return cpf;
+
+            // Mantém apenas os últimos 3 dígitos visíveis
+            var mascara = new string('*', cpf.Length - 3) + cpf[^3..];
+            return mascara;
+        }
+
+        private string MascararIp(string ip)
+        {
+            // Máscara padrão para IPv4: xxx.xxx.xxx.XXX
+            var partes = ip.Split('.');
+            if (partes.Length == 4)
+            {
+                return $"{partes[0]}.{partes[1]}.{partes[2]}.xxx";
+            }
+
+            return ip; // Retorna IP original se não for IPv4
         }
     }
 }

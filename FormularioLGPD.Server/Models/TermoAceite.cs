@@ -14,6 +14,10 @@ namespace FormularioLGPD.Server.Models
         public string NumeroTermo { get; set; } = string.Empty;
 
         [Required]
+        [MaxLength(50)]
+        public string TipoCadastro { get; set; } = "cadastro"; // NOVO CAMPO ADICIONADO
+
+        [Required]
         public string ConteudoTermo { get; set; } = string.Empty;
 
         public bool AceiteConfirmado { get; set; }

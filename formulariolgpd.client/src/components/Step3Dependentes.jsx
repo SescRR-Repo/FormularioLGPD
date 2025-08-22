@@ -1,5 +1,6 @@
 ﻿// src/components/Step3Dependentes.jsx
 import React, { useState } from 'react';
+import { validateCPF, applyCPFMask } from '../utils/cpfValidator'; // IMPORTAR VALIDADOR
 
 const Step3Dependentes = ({ formData, onInputChange, onNext, onPrev }) => {
     const [dependentes, setDependentes] = useState(formData.dependentes || []);
@@ -41,14 +42,40 @@ const Step3Dependentes = ({ formData, onInputChange, onNext, onPrev }) => {
         
         // Limpar erros do dependente removido
         const newErrors = { ...errors };
-        delete newErrors[id];
+        delete newErrors[`${id}_idade`];
+        delete newErrors[`${id}_cpf`];
         setErrors(newErrors);
     };
 
     const atualizarDependente = (id, campo, valor) => {
         const novosDependentes = dependentes.map(dep => {
             if (dep.id === id) {
-                const dependenteAtualizado = { ...dep, [campo]: valor };
+                let dependenteAtualizado = { ...dep };
+                
+                // VALIDAÇÃO MELHORADA PARA CPF
+                if (campo === 'cpf') {
+                    const formatted = applyCPFMask(valor);
+                    dependenteAtualizado[campo] = formatted;
+                    
+                    // Validar CPF em tempo real
+                    const cpfLimpo = formatted.replace(/\D/g, '');
+                    if (cpfLimpo.length === 11) {
+                        if (!validateCPF(cpfLimpo)) {
+                            setErrors(prev => ({
+                                ...prev,
+                                [`${id}_cpf`]: 'CPF inválido'
+                            }));
+                        } else {
+                            setErrors(prev => {
+                                const newErrors = { ...prev };
+                                delete newErrors[`${id}_cpf`];
+                                return newErrors;
+                            });
+                        }
+                    }
+                } else {
+                    dependenteAtualizado[campo] = valor;
+                }
                 
                 // Validar idade quando data de nascimento for atualizada
                 if (campo === 'dataNascimento') {
@@ -56,12 +83,12 @@ const Step3Dependentes = ({ formData, onInputChange, onNext, onPrev }) => {
                     if (idade !== null && idade >= 18) {
                         setErrors(prev => ({
                             ...prev,
-                            [id]: 'Este dependente é maior de idade. Para dependentes maiores de 18 anos, eles devem fazer seu próprio cadastro individualmente.'
+                            [`${id}_idade`]: 'Este dependente é maior de idade. Para dependentes maiores de 18 anos, eles devem fazer seu próprio cadastro individualmente.'
                         }));
                     } else {
                         setErrors(prev => {
                             const newErrors = { ...prev };
-                            delete newErrors[id];
+                            delete newErrors[`${id}_idade`];
                             return newErrors;
                         });
                     }
@@ -76,17 +103,30 @@ const Step3Dependentes = ({ formData, onInputChange, onNext, onPrev }) => {
         onInputChange('dependentes', novosDependentes);
     };
 
-    const formatCPF = (cpf) => {
-        const numbers = cpf.replace(/\D/g, '');
-        return numbers.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
-    };
-
     const validateForm = () => {
-        // Verificar se há erros de idade
-        const hasErrors = Object.keys(errors).length > 0;
+        const newErrors = {};
         
-        if (hasErrors) {
-            alert('Por favor, corrija os erros antes de continuar. Dependentes maiores de idade devem fazer cadastro individual.');
+        // Validar cada dependente
+        dependentes.forEach(dep => {
+            // Validar idade
+            const idade = calcularIdade(dep.dataNascimento);
+            if (idade !== null && idade >= 18) {
+                newErrors[`${dep.id}_idade`] = 'Dependente maior de idade deve fazer cadastro individual';
+            }
+            
+            // Validar CPF se preenchido
+            if (dep.cpf) {
+                const cpfLimpo = dep.cpf.replace(/\D/g, '');
+                if (cpfLimpo.length === 11 && !validateCPF(cpfLimpo)) {
+                    newErrors[`${dep.id}_cpf`] = 'CPF inválido';
+                }
+            }
+        });
+        
+        setErrors(newErrors);
+        
+        if (Object.keys(newErrors).length > 0) {
+            alert('Por favor, corrija os erros antes de continuar.');
             return false;
         }
 
@@ -122,10 +162,12 @@ const Step3Dependentes = ({ formData, onInputChange, onNext, onPrev }) => {
                             <form onSubmit={handleSubmit}>
                                 {dependentes.map((dependente, index) => {
                                     const idade = calcularIdade(dependente.dataNascimento);
-                                    const isError = errors[dependente.id];
+                                    const isErrorIdade = errors[`${dependente.id}_idade`];
+                                    const isErrorCpf = errors[`${dependente.id}_cpf`];
+                                    const hasErrors = isErrorIdade || isErrorCpf;
                                     
                                     return (
-                                        <div key={dependente.id} className={`card mb-3 border ${isError ? 'border-danger' : ''}`}>
+                                        <div key={dependente.id} className={`card mb-3 border ${hasErrors ? 'border-danger' : ''}`}>
                                             <div className="card-header d-flex justify-content-between align-items-center">
                                                 <div>
                                                     <h6 className="mb-0">Dependente {index + 1}</h6>
@@ -144,10 +186,11 @@ const Step3Dependentes = ({ formData, onInputChange, onNext, onPrev }) => {
                                                 </button>
                                             </div>
                                             <div className="card-body">
-                                                {isError && (
+                                                {hasErrors && (
                                                     <div className="alert alert-danger alert-sm mb-3">
                                                         <i className="bi bi-exclamation-triangle me-2"></i>
-                                                        {isError}
+                                                        {isErrorIdade && <div>{isErrorIdade}</div>}
+                                                        {isErrorCpf && <div>{isErrorCpf}</div>}
                                                     </div>
                                                 )}
                                                 
@@ -167,7 +210,7 @@ const Step3Dependentes = ({ formData, onInputChange, onNext, onPrev }) => {
                                                         <label className="form-label">Data de Nascimento</label>
                                                         <input
                                                             type="date"
-                                                            className={`form-control ${isError ? 'is-invalid' : ''}`}
+                                                            className={`form-control ${isErrorIdade ? 'is-invalid' : ''}`}
                                                             value={dependente.dataNascimento}
                                                             onChange={(e) => atualizarDependente(dependente.id, 'dataNascimento', e.target.value)}
                                                             max={new Date().toISOString().split('T')[0]} // Não permite datas futuras
@@ -178,12 +221,21 @@ const Step3Dependentes = ({ formData, onInputChange, onNext, onPrev }) => {
                                                         <label className="form-label">CPF</label>
                                                         <input
                                                             type="text"
-                                                            className="form-control"
+                                                            className={`form-control ${isErrorCpf ? 'is-invalid' : ''}`}
                                                             placeholder="000.000.000-00"
                                                             value={dependente.cpf}
-                                                            onChange={(e) => atualizarDependente(dependente.id, 'cpf', formatCPF(e.target.value))}
+                                                            onChange={(e) => atualizarDependente(dependente.id, 'cpf', e.target.value)}
                                                             maxLength="14"
                                                         />
+                                                        {isErrorCpf && (
+                                                            <div className="invalid-feedback">{isErrorCpf}</div>
+                                                        )}
+                                                        {/* FEEDBACK VISUAL PARA CPF VÁLIDO */}
+                                                        {dependente.cpf?.replace(/\D/g, '').length === 11 && !isErrorCpf && (
+                                                            <div className="text-success small mt-1">
+                                                                <i className="bi bi-check-circle me-1"></i>CPF válido
+                                                            </div>
+                                                        )}
                                                     </div>
                                                     
                                                     <div className="col-md-12 mb-3">

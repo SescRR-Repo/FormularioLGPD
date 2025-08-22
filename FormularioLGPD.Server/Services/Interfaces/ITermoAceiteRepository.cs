@@ -10,5 +10,10 @@ namespace FormularioLGPD.Server.Repositories.Interfaces
         Task<TermoAceite> AtualizarAsync(TermoAceite termo);
         Task<bool> ExisteCpfAsync(string cpf);
         Task<List<TermoAceite>> ListarAsync(int skip = 0, int take = 10);
+        
+        // ✅ NOVOS MÉTODOS
+        Task<int> ContarTermosPorCpfAsync(string cpf);
+        Task<List<TermoAceite>> ObterTermosPorCpfAsync(string cpf);
+        Task<Titular?> ObterTitularPorCpfAsync(string cpf);
     }
 }

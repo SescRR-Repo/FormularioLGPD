@@ -32,31 +32,63 @@ namespace FormularioLGPD.Server.Services
         {
             try
             {
-                // Validar se CPF já existe
-                if (await ValidarCpfExistenteAsync(dto.Titular.CPF))
+                // ✅ LOG: Registrar tentativa de criação de termo (pode ser renovação)
+                var termosExistentes = await _termoRepository.ContarTermosPorCpfAsync(dto.Titular.CPF);
+                if (termosExistentes > 0)
                 {
-                    throw new InvalidOperationException("CPF já possui um termo ativo.");
+                    _logger.LogInformation("📝 Criando termo adicional para CPF existente. Total de termos: {Count}", termosExistentes + 1);
                 }
 
-                // Criar entidade Titular
-                var titular = new Titular
+                // ✅ NOVO: Verificar se já existe titular com este CPF
+                var titularExistente = await _termoRepository.ObterTitularPorCpfAsync(dto.Titular.CPF);
+                
+                Titular titular;
+                if (titularExistente != null)
                 {
-                    Nome = dto.Titular.Nome,
-                    CPF = dto.Titular.CPF,
-                    RG = dto.Titular.RG,
-                    DataNascimento = dto.Titular.DataNascimento,
-                    EstadoCivil = dto.Titular.EstadoCivil,
-                    Naturalidade = dto.Titular.Naturalidade,
-                    Endereco = dto.Titular.Endereco,
-                    Telefone = dto.Titular.Telefone,
-                    Email = dto.Titular.Email,
-                    Escolaridade = dto.Titular.Escolaridade,
-                    SerieSemestre = dto.Titular.SerieSemestre,
-                    QualificacaoLegal = dto.Titular.QualificacaoLegal,
-                    DataCadastro = DateTime.UtcNow
-                };
+                    // ✅ REUTILIZAR titular existente e atualizar dados
+                    _logger.LogInformation("♻️ Reutilizando titular existente para CPF: {CPF}", MascararCpf(dto.Titular.CPF));
+                    
+                    titular = titularExistente;
+                    // Atualizar dados do titular com as informações mais recentes
+                    titular.Nome = dto.Titular.Nome;
+                    titular.RG = dto.Titular.RG;
+                    titular.DataNascimento = dto.Titular.DataNascimento;
+                    titular.EstadoCivil = dto.Titular.EstadoCivil;
+                    titular.Naturalidade = dto.Titular.Naturalidade;
+                    titular.Endereco = dto.Titular.Endereco;
+                    titular.Telefone = dto.Titular.Telefone;
+                    titular.Email = dto.Titular.Email;
+                    titular.Escolaridade = dto.Titular.Escolaridade;
+                    titular.SerieSemestre = dto.Titular.SerieSemestre;
+                    titular.QualificacaoLegal = dto.Titular.QualificacaoLegal;
+                    
+                    // ✅ LIMPAR dependentes existentes se for renovação/atualização
+                    titular.Dependentes.Clear();
+                }
+                else
+                {
+                    // ✅ CRIAR novo titular (primeiro termo)
+                    _logger.LogInformation("🆕 Criando novo titular para CPF: {CPF}", MascararCpf(dto.Titular.CPF));
+                    
+                    titular = new Titular
+                    {
+                        Nome = dto.Titular.Nome,
+                        CPF = dto.Titular.CPF,
+                        RG = dto.Titular.RG,
+                        DataNascimento = dto.Titular.DataNascimento,
+                        EstadoCivil = dto.Titular.EstadoCivil,
+                        Naturalidade = dto.Titular.Naturalidade,
+                        Endereco = dto.Titular.Endereco,
+                        Telefone = dto.Titular.Telefone,
+                        Email = dto.Titular.Email,
+                        Escolaridade = dto.Titular.Escolaridade,
+                        SerieSemestre = dto.Titular.SerieSemestre,
+                        QualificacaoLegal = dto.Titular.QualificacaoLegal,
+                        DataCadastro = DateTime.UtcNow
+                    };
+                }
 
-                // Adicionar dependentes
+                // Adicionar dependentes atuais
                 foreach (var depDto in dto.Dependentes)
                 {
                     var dependente = new Dependente
@@ -85,6 +117,7 @@ namespace FormularioLGPD.Server.Services
                 var termo = new TermoAceite
                 {
                     Titular = titular,
+                    TipoCadastro = dto.TipoCadastro,
                     NumeroTermo = GerarNumeroTermo(),
                     ConteudoTermo = conteudoTermo,
                     AceiteConfirmado = dto.AceiteConfirmado,
@@ -92,7 +125,7 @@ namespace FormularioLGPD.Server.Services
                     IpOrigem = ipOrigem,
                     UserAgent = userAgent,
                     HashIntegridade = hashIntegridade,
-                    CaminhoArquivoPDF = string.Empty, // Será preenchido após gerar o PDF
+                    CaminhoArquivoPDF = string.Empty,
                     DataCriacao = DateTime.UtcNow
                 };
 
@@ -111,12 +144,13 @@ namespace FormularioLGPD.Server.Services
                 await _logService.RegistrarOperacaoAsync(
                     termoSalvo.Id,
                     "ACEITE_CRIADO",
-                    "Termo de aceite criado com sucesso",
+                    $"Termo de aceite criado com sucesso - Tipo: {dto.TipoCadastro}",
                     ipOrigem,
                     userAgent,
                     StatusOperacao.Sucesso);
 
-                _logger.LogInformation("Termo de aceite criado com sucesso. Número: {NumeroTermo}", termoSalvo.NumeroTermo);
+                _logger.LogInformation("✅ Termo de aceite criado com sucesso. Número: {NumeroTermo}, Tipo: {Tipo}", 
+                    termoSalvo.NumeroTermo, dto.TipoCadastro);
 
                 return new TermoAceiteResponseDTO
                 {
@@ -131,7 +165,7 @@ namespace FormularioLGPD.Server.Services
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Erro ao criar termo de aceite para CPF: {CPF}", dto.Titular.CPF);
+                _logger.LogError(ex, "💥 Erro ao criar termo de aceite para CPF: {CPF}", dto.Titular.CPF);
 
                 // Log de erro
                 await _logService.RegistrarOperacaoAsync(
@@ -163,6 +197,29 @@ namespace FormularioLGPD.Server.Services
         public async Task<TermoAceite?> ObterTermoPorIdAsync(int id)
         {
             return await _termoRepository.ObterPorIdAsync(id);
+        }
+
+        // ✅ NOVOS MÉTODOS IMPLEMENTADOS
+        public async Task<int> ContarTermosPorCpfAsync(string cpf)
+        {
+            return await _termoRepository.ContarTermosPorCpfAsync(cpf);
+        }
+
+        public async Task<List<TermoAceite>> ObterTermosPorCpfAsync(string cpf)
+        {
+            return await _termoRepository.ObterTermosPorCpfAsync(cpf);
+        }
+
+        public async Task<TermoAceite?> ObterUltimoTermoPorCpfAsync(string cpf)
+        {
+            var termos = await _termoRepository.ObterTermosPorCpfAsync(cpf);
+            return termos.FirstOrDefault(); // Já vem ordenado por data DESC
+        }
+
+        // ✅ MÉTODO FALTANTE IMPLEMENTADO
+        public async Task<Titular?> ObterTitularPorCpfAsync(string cpf)
+        {
+            return await _termoRepository.ObterTitularPorCpfAsync(cpf);
         }
 
         public string GerarNumeroTermo()
@@ -238,6 +295,14 @@ Aceite eletrônico realizado em: {DateTime.UtcNow:dd/MM/yyyy HH:mm:ss} UTC
             using var sha256 = SHA256.Create();
             var bytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(conteudo));
             return Convert.ToHexString(bytes);
+        }
+
+        // ✅ NOVO MÉTODO AUXILIAR
+        private string MascararCpf(string cpf)
+        {
+            if (string.IsNullOrEmpty(cpf) || cpf.Length < 3)
+                return cpf;
+            return new string('*', cpf.Length - 3) + cpf[^3..];
         }
     }
 }

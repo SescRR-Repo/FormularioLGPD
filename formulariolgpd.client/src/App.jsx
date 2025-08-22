@@ -58,7 +58,6 @@ function App() {
                 return [
                     { key: 'tipo', title: 'Tipo de Cadastro', component: Step1TipoCadastro },
                     { key: 'dados', title: 'Seus Dados', component: Step2DadosPessoais },
-                    { key: 'titular', title: 'Dados do Titular', component: Step2_5DadosTitular },
                     { key: 'consentimentos', title: 'Consentimentos', component: Step4Consentimentos },
                     { key: 'previa', title: 'Prévia do Documento', component: DocumentoPrevia }
                 ];
